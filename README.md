@@ -1,3 +1,3 @@
 # osparcli
 
-e chlini version von osparc
+"En clini osparc" for prototyping
