@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  catalog:
+    image: local/mini-osparc
+    build: .
+    ports:
+      - "8000:8000"
+    volumes: 
+      - ./services:/src
+    command: ["python", "/src/catalog.py"]
+    user: "${UID}:${GID}"
+
+  projects:
+    image: local/mini-osparc
+    build: .
+    ports:
+      - "8001:8000"
+    volumes: 
+      - ./services:/src
+    command: ["python", "/src/projects.py"]
+    user: "${UID}:${GID}"
+
+  users:
+    image: local/mini-osparc
+    build: .
+    ports:
+      - "8002:8000"
+    volumes: 
+      - ./services:/src
+    command: ["python", "/src/users.py"]
+    user: "${UID}:${GID}"
+
+  web:
+    image: local/mini-osparc
+    build: .
+    ports:
+      - "8003:8000"
+    volumes: 
+      - ./services:/src
+    command: ["python", "/src/web.py"]
+    user: "${UID}:${GID}"
