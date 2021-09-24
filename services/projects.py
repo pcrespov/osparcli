@@ -1,31 +1,22 @@
-#
-# Assists on the creation of project's OAS
-#
-# - Follows https://cloud.google.com/apis/design
-# - check in https://editor.swagger.io/
-#
-# pylint: disable=redefined-outer-name
-# pylint: disable=unused-argument
-# pylint: disable=unused-variable
-
-import json
-import sys
 from datetime import datetime
 from math import ceil
-from pathlib import Path
-from types import FunctionType
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 from uuid import UUID, uuid3
 
-import simcore_service_webserver.projects.projects_handlers
-import simcore_service_webserver.projects.projects_node_handlers
-import simcore_service_webserver.version_control_handlers
 from fastapi import Depends, FastAPI
 from fastapi import Path as PathParam
 from fastapi import Query, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.routing import APIRoute, APIRouter
-from models_library.services import PROPERTY_KEY_RE, Author
+from libs.application import (
+    get_reverse_url_mapper,
+    redefine_operation_id_in_router,
+    run,
+)
+from libs.envelope import Envelope
+from libs.pagination import Page, init_pagination
+
+
 from pydantic import (
     BaseModel,
     Field,
@@ -33,23 +24,16 @@ from pydantic import (
     StrictBool,
     StrictFloat,
     StrictInt,
-    constr,
-    validator,
 )
-from pydantic.generics import GenericModel
 from pydantic.networks import HttpUrl
-from servicelib.rest_pagination_utils import PageLinks, PageMetaInfoLimitOffset
-from simcore_service_webserver.version_control_models_snapshots import SnapshotResource
-from starlette.datastructures import URL
 
-CURRENT_FILENAME_STEM = Path(sys.argv[0] if __name__ == "__main__" else __file__).stem
-# FIXME: modify openapi output
-#   - exclusiveMinimum should be boolean. SEE https://github.com/tiangolo/fastapi/issues/240
-#   - examples is NOT allowed
-#   - patternProperties NOT allowed
+from pathlib import Path
+import sys
+
+APP_NAME = Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().stem
 
 
-InputID = OutputID = constr(regex=PROPERTY_KEY_RE)
+InputID = OutputID = str  # constr(regex=PROPERTY_KEY_RE)
 
 # WARNING: oder matters
 BuiltinTypes = Union[StrictBool, StrictInt, StrictFloat, str]
@@ -59,68 +43,6 @@ DataSchema = Union[
 DataLink = HttpUrl
 
 DataSchema = Union[DataSchema, DataLink]
-
-DataT = TypeVar("DataT")
-
-
-class Error(BaseModel):
-    code: int
-    message: str
-
-
-class Envelope(GenericModel, Generic[DataT]):
-    data: Optional[DataT]
-    error: Optional[Error]
-
-    @validator("error", always=True)
-    @classmethod
-    def check_consistency(cls, v, values):
-        if v is not None and values["data"] is not None:
-            raise ValueError("must not provide both data and error")
-        if v is None and values.get("data") is None:
-            raise ValueError("must provide data or error")
-        return v
-
-
-ItemT = TypeVar("ItemT")
-
-# FIXME: replace PageResponseLimitOffset
-# FIXME: page envelope is inconstent since DataT != Page ??
-class Page(GenericModel, Generic[ItemT]):
-    meta: PageMetaInfoLimitOffset = Field(alias="_meta")
-    links: PageLinks = Field(alias="_links")
-    data: List[ItemT]
-
-    @classmethod
-    def create_obj(
-        cls,
-        data: List[Any],
-        request_url: URL,
-        total: int,
-        limit: int,
-        offset: int,
-    ) -> Dict[str, Any]:
-        last_page = ceil(total / limit) - 1
-        return dict(
-            _meta=PageMetaInfoLimitOffset(
-                total=total, count=len(data), limit=limit, offset=offset
-            ),
-            _links=PageLinks(
-                self=f"{request_url.replace_query_params(offset=offset, limit=limit)}",
-                first=f"{request_url.replace_query_params(offset= 0, limit= limit)}",
-                prev=f"{request_url.replace_query_params(offset= max(offset - limit, 0), limit= limit)}"
-                if offset > 0
-                else None,
-                next=f"{request_url.replace_query_params(offset= min(offset + limit, last_page * limit), limit= limit)}"
-                if offset < (last_page * limit)
-                else None,
-                last=f"{request_url.replace_query_params(offset= last_page * limit, limit= limit)}",
-            ),
-            data=data,
-        )
-
-
-# --------------
 
 
 class State(BaseModel):
@@ -201,87 +123,6 @@ class Parameter(BaseModel):
 class ParameterDetail(Parameter):
     url: HttpUrl
     # url_output: HttpUrl
-
-
-########################### DEPENDENCIES #########################################
-
-
-def get_reverse_url_mapper(request: Request) -> Callable:
-    def reverse_url_mapper(name: str, **path_params: Any) -> str:
-        return request.url_for(name, **path_params)
-
-    return reverse_url_mapper
-
-
-def init_pagination(item_cls: Type):
-    PageType = Page[item_cls]
-
-    def _get(
-        request: Request,
-        offset: PositiveInt = Query(
-            0, description="index to the first item to return (pagination)"
-        ),
-        limit: int = Query(
-            20,
-            description="maximum number of items to return (pagination)",
-            ge=1,
-            le=50,
-        ),
-    ) -> PageType:
-        empty_page: PageType = PageType.parse_obj(
-            Page.create_obj([], request.url, total=0, limit=limit, offset=offset)
-        )
-        return empty_page
-
-    return _get
-
-
-########################### HELPERS #########################################
-
-
-def redefine_operation_id_in_router(router: APIRouter, operation_id_prefix: str):
-    for route in router.routes:
-        if isinstance(route, APIRoute):
-            assert isinstance(route.endpoint, FunctionType)  # nosec
-            route.operation_id = (
-                f"{operation_id_prefix}._{route.endpoint.__name__}_handler"
-            )
-
-
-def create_app(routers: List[APIRouter]) -> FastAPI:
-    app = FastAPI(docs_url="/dev/doc")
-
-    for r in routers:
-        app.include_router(r)
-
-    # print(yaml.safe_dump(app.openapi()))
-    # print("-"*100)
-
-    openapi = app.openapi()
-
-    def _fix(node):
-        if isinstance(node, Dict):
-            for key in list(node.keys()):
-                # FIX openapi generation
-                if key == "exclusiveMinimum":
-                    node[key] = bool(node[key])
-
-                if key in ("examples", "patternProperties"):
-                    node.pop(key)
-                    continue
-
-                _fix(node[key])
-
-        elif isinstance(node, list):
-            for value in node:
-                _fix(value)
-
-    _fix(openapi)
-
-    with open(f"{CURRENT_FILENAME_STEM}-openapi.ignore.json", "wt") as f:
-        json.dump(openapi, f, indent=2)
-
-    return app
 
 
 ####################################################################
@@ -367,7 +208,7 @@ def close_project(project_uuid: UUID = Depends(get_valid_project)):
 
 redefine_operation_id_in_router(
     project_routes,
-    operation_id_prefix=simcore_service_webserver.projects.projects_handlers.__name__,
+    operation_id_prefix="simcore_service_webserver.projects.projects_handlers",
 )
 
 # project states sub-resource --------
@@ -382,7 +223,7 @@ def get_project_state(project_uuid: UUID = Depends(get_valid_project)):
 
 redefine_operation_id_in_router(
     pr_state_routes,
-    operation_id_prefix=simcore_service_webserver.projects.projects_handlers.__name__,
+    operation_id_prefix="simcore_service_webserver.projects.projects_handlers",
 )
 
 # project nodes sub-resource --------
@@ -397,7 +238,7 @@ def get_project_node(project_uuid: UUID = Depends(get_valid_project)):
 
 redefine_operation_id_in_router(
     pr_state_routes,
-    operation_id_prefix=simcore_service_webserver.projects.projects_node_handlers.__name__,
+    operation_id_prefix="simcore_service_webserver.projects.projects_node_handlers",
 )
 
 
@@ -420,104 +261,6 @@ class Tags:
     def delete(tag_id: int, project_uuid: UUID = Depends(get_valid_project)):
         """Un-assigns tag to a project"""
         ...
-
-
-# project snapshot subresource --------
-#  - analogous to a git-commit
-#  - takes a snapshot of the current state of the project
-#  - WILL NOT USE?
-
-snapshot_routes = APIRouter(
-    prefix="/projects/{project_uuid}/snapshots", tags=["project", "snapshot"]
-)
-
-
-@snapshot_routes.get(
-    "",
-    response_model=Page[SnapshotResource],
-)
-def list_snapshots(
-    page=Depends(init_pagination(SnapshotResource)),
-    project_uuid: UUID = Depends(get_valid_project),
-    url_for: Callable = Depends(get_reverse_url_mapper),
-):
-    """Lists all snapshots taken from a given project"""
-
-
-@snapshot_routes.post(
-    "",
-    response_model=Envelope[SnapshotResource],
-    status_code=status.HTTP_201_CREATED,
-)
-def create_snapshot(
-    project_uuid: UUID = Depends(get_valid_project),
-    snapshot_label: Optional[str] = None,
-    url_for: Callable = Depends(get_reverse_url_mapper),
-):
-    """Takes a snapshot of the project at this time"""
-    # - hash parent_project as a mechanism to check changes
-    # -
-
-
-@snapshot_routes.get(
-    "/{snapshot_id}",
-    response_model=Envelope[SnapshotResource],
-)
-def get_snapshot(
-    snapshot_id: PositiveInt,
-    project_uuid: UUID = Depends(get_valid_project),
-    url_for: Callable = Depends(get_reverse_url_mapper),
-):
-    """Gets commit info for a given snapshot"""
-
-
-@snapshot_routes.delete(
-    "/{snapshot_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_snapshot(
-    snapshot_id: PositiveInt,
-    project_uuid: UUID = Depends(get_valid_project),
-):
-    """Deletes both the commit and the project itself"""
-    # delete a snapshot -> project deleted?
-    # delete a project-snapshot -> delete snapshot
-
-
-@snapshot_routes.patch(
-    "/{snapshot_id}",
-)
-def update_snapshot_name(
-    snapshot_id: PositiveInt,
-    snapshot_name: str,
-    project_uuid: UUID = Depends(get_valid_project),
-):
-    ...
-
-
-redefine_operation_id_in_router(
-    snapshot_routes,
-    operation_id_prefix="simcore_service_webserver.repos_snapshots_api_handlers",
-)
-
-
-# project parametrization subresource --------
-
-parameter_routes = APIRouter(
-    prefix="/projects/{project_uuid}/parameters", tags=["project"]
-)
-
-
-@parameter_routes.get(
-    "",
-    response_model=Page[ParameterDetail],
-)
-def list_project_parameters(
-    snapshot_id: str,
-    project_uuid: UUID = Depends(get_valid_project),
-    url_for: Callable = Depends(get_reverse_url_mapper),
-):
-    """Lists all parameters in a project"""
 
 
 # repositories
@@ -551,17 +294,16 @@ class Repo(BaseModel):
     url: HttpUrl
 
 
-# -
 _PROJECTS_WITH_REPO = {}
 
 
 def get_valid_repo(project_uuid: UUID = Depends(get_valid_project)):
-    if pid in _PROJECTS_WITH_REPO:
+    if project_uuid not in _PROJECTS_WITH_REPO:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project does not has a repository",
         )
-    return pid
+    return project_uuid
 
 
 repo_routes = APIRouter(prefix="/repos/projects", tags=["repository"])
@@ -602,7 +344,7 @@ class CommitRef(BaseModel):
 
 
 class Commit(CommitRef):
-    author: Author
+    # author: Author
     created_at: datetime
     message: str
     parents: List[CommitRef]
@@ -661,11 +403,6 @@ def update_commit_message(
     ),
     project_uuid: UUID = Depends(get_valid_repo),
 ):
-    ...
-
-
-# do not expose!?
-def create_branch():
     ...
 
 
@@ -841,31 +578,24 @@ def view_project_workbench(
 
 redefine_operation_id_in_router(
     repo_routes,
-    operation_id_prefix=simcore_service_webserver.version_control_handlers.__name__,
+    operation_id_prefix="simcore_service_webserver.version_control_handlers",
 )
 
 
-#####################################################
-# uvicorn --reload projects_openapi_generator:the_app
-the_app = create_app(
-    routers=[
-        # project_routes,
-        # project_nodes_routes,
-        # pr_state_routes,
-        # snapshot_routes,
-        # parameter_routes,
-        repo_routes,
-        # repo_routes_hidden,
-    ]
-)
+
+the_app = FastAPI(title=APP_NAME)
+
+for r in [
+    project_routes,
+    # project_nodes_routes,
+    # pr_state_routes,
+    # snapshot_routes,
+    # parameter_routes,
+    # repo_routes,
+    # repo_routes_hidden,
+]:
+    the_app.include_router(r)
+
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "projects_openapi_generator:the_app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="debug",
-    )
+    run(APP_NAME)
