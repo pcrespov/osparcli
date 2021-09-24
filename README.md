@@ -1,2 +1,3 @@
 # osparcli
-Ani chlini osparc
+
+e chlini version von osparc
