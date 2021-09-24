@@ -12,7 +12,6 @@ from pydantic import (
     validator,
 )
 from pydantic.generics import GenericModel
-
 from starlette.datastructures import URL
 
 ########################### MODELS ###########################
@@ -135,5 +134,3 @@ def init_pagination(item_cls: Type):
         return empty_page
 
     return _get
-
-

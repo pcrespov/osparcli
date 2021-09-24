@@ -1,5 +1,7 @@
+import sys
 from datetime import datetime
 from math import ceil
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 from uuid import UUID, uuid3
 
@@ -15,20 +17,8 @@ from libs.application import (
 )
 from libs.envelope import Envelope
 from libs.pagination import Page, init_pagination
-
-
-from pydantic import (
-    BaseModel,
-    Field,
-    PositiveInt,
-    StrictBool,
-    StrictFloat,
-    StrictInt,
-)
+from pydantic import BaseModel, Field, PositiveInt, StrictBool, StrictFloat, StrictInt
 from pydantic.networks import HttpUrl
-
-from pathlib import Path
-import sys
 
 APP_NAME = Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().stem
 
@@ -580,7 +570,6 @@ redefine_operation_id_in_router(
     repo_routes,
     operation_id_prefix="simcore_service_webserver.version_control_handlers",
 )
-
 
 
 the_app = FastAPI(title=APP_NAME)
