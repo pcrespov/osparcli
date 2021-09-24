@@ -56,6 +56,7 @@ leave:
 .PHONY: dev-env
 env-dev:
 	pip install -r requirements-dev.txt
+	pre-commit install
 
 
 .PHONY: info
