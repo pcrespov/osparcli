@@ -1,25 +1,48 @@
+STACK_NAME:= $(notdir $(CURDIR))
 export UID:=$(shell id -u)
 export GID:=$(shell id -g)
 
-.PHONY: config
-config:
-	@docker-compose config
+
+# docker-compose
+
+.PHONY: compose-dev.yml
+compose-dev.yml:
+	@docker-compose -f docker-compose.yml -f docker-compose-ops.yml config >$@
 
 .PHONY: build
 build:
 	@docker-compose build
 
 .PHONY: up
-up:
-	@docker-compose up
+up: compose-dev.yml
+	@docker-compose --file $< up
 
 .PHONY: down
-down:
-	@docker-compose down
+down: compose-dev.yml
+	@docker-compose --file $< down
 
 
 
-# development
+# docker-swarm
+.PHONY: init
+init:
+	docker swarm init
+
+.PHONY: deploy
+deploy: compose-dev.yml
+	docker stack deploy --with-registry-auth --compose-file $< ${STACK_NAME}
+
+.PHON: remove
+remove:
+	docker stack rm ${STACK_NAME}
+
+.PHONY: leave
+leave:
+	docker swarm leave --force
+
+
+# in-place development
+# TODO: devcontainer?
 
 .venv:
 	python3 -m venv $@
@@ -30,9 +53,16 @@ down:
 	@echo "To activate the venv, execute 'source .venv/bin/activate'"
 
 
-.PHONY: install
-install:
-	pip install -r requirements.txt
+.PHONY: dev-env
+env-dev:
+	pip install -r requirements-dev.txt
+
+
+.PHONY: info
+info:
+	@python --version
+	@pip --version
+	@pip list
 
 
 .PHONY: clean
