@@ -132,3 +132,4 @@ dmypy.json
 
 # compose config
 compose-dev.yml
+.vscode/settings.json
