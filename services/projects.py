@@ -7,9 +7,9 @@ from uuid import UUID, uuid3
 
 from fastapi import Depends, FastAPI
 from fastapi import Path as PathParam
-from fastapi import Query, Request, status
+from fastapi import status
 from fastapi.exceptions import HTTPException
-from fastapi.routing import APIRoute, APIRouter
+from fastapi.routing import APIRouter
 from libs.application import (
     get_reverse_url_mapper,
     redefine_operation_id_in_router,
@@ -193,6 +193,11 @@ def stop_project(project_uuid: UUID = Depends(get_valid_project)):
 
 @project_routes.post("/{project_uuid}:close")
 def close_project(project_uuid: UUID = Depends(get_valid_project)):
+    ...
+
+
+@project_routes.post("/{project_uuid}:restore", response_model=Envelope[ProjectDetail])
+def restore_project(project_uuid: UUID = Depends(get_valid_project)):
     ...
 
 
@@ -580,7 +585,7 @@ for r in [
     # pr_state_routes,
     # snapshot_routes,
     # parameter_routes,
-    # repo_routes,
+    repo_routes,
     # repo_routes_hidden,
 ]:
     the_app.include_router(r)
