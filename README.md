@@ -1,4 +1,10 @@
-# ⚗️ osparcli: *En chlini osparc* for prototyping
+# ⚗️ oSparcli: *En chliine oSparc* for prototyping
 
 
-> "As git [brotli](https://github.com/google/brotli), [zopfli](https://github.com/google/zopfli) und jetzt au [osparcli](https://github.com/pcrespov/osparcli)"
+*Äs git [Brötli](https://github.com/google/brotli), [Zöpfli](https://github.com/google/zopfli) und jetzt au [oSparcli](https://github.com/pcrespov/osparcli)*
+
+
+---
+<p align="center">
+<img src="https://forthebadge.com/images/badges/built-with-love.svg" width="150" alt="Made with tons of love in ZH">
+</p>
