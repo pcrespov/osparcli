@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -15,13 +16,12 @@ compose = {
     "version": "3.9",
     "services": {
         name: {
-            "image": "local/mini-osparc",
-            "build": ".",
+            "image": os.getenv("BASE_IMAGE", "${BASE_IMAGE}"),
             "ports": [f"{8000+n}:8000"],
             "volumes": [
                 "./services:/src",
             ],
-            "command": ["python", "/src/projects.py"],
+            "command": ["python", f"/src/{name}.py"],
             "user": "${UID}:${GID}",
         }
         for n, name in enumerate(service_names)

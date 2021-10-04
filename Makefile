@@ -1,20 +1,28 @@
 STACK_NAME:= $(notdir $(CURDIR))
+
+export BASE_IMAGE:=local/mini-osparc
 export UID:=$(shell id -u)
 export GID:=$(shell id -g)
+
 
 help: ## help on rule's targets
 	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 
+
 # docker-compose
+docker-compose.yml:
+	@python scripts/create-compose-file.py > $@
 
 .PHONY: compose-dev.yml
 compose-dev.yml:
 	@docker-compose -f docker-compose.yml -f docker-compose-ops.yml config >$@
 
+
+
 .PHONY: build
 build: ## build IMAGES
-	@docker-compose build
+	@docker build --file Dockerfile --tag   .
 
 .PHONY: up
 up: compose-dev.yml ## starts CONTAINERS
@@ -32,8 +40,9 @@ init: ## inits SWARM
 	docker swarm init
 
 .PHONY: deploy
-deploy: compose-dev.yml ## deploy stack in SWARM
+deploy: compose-dev.yml ## deploy/update stack in SWARM
 	docker stack deploy --with-registry-auth --compose-file $< ${STACK_NAME}
+	@echo ''make remove'' to stop swarm
 
 .PHON: remove
 remove: ## remove stack from SWARM
@@ -42,6 +51,7 @@ remove: ## remove stack from SWARM
 .PHONY: leave
 leave: ## leaves SWARM
 	docker swarm leave --force
+
 
 
 # in-place development
@@ -62,11 +72,14 @@ env-dev: ## env-devel
 	pre-commit install
 
 
+
 .PHONY: info
 info: ## environment info
 	@python --version
 	@pip --version
 	@pip list
+	@echo ---
+	@printenv
 
 
 .PHONY: clean
