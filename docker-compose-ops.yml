@@ -10,5 +10,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
 
+  adminer:
+    image: adminer:4.8.0
+    init: true
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=nette
+      - ADMINER_PLUGINS=json-column
+    ports:
+      - "18080:8080"
+
 volumes:
   portainer_data: {}

@@ -4,6 +4,10 @@ export BASE_IMAGE:=local/mini-osparc
 export UID:=$(shell id -u)
 export GID:=$(shell id -g)
 
+export POSTGRES_USER:=$(shell id -un)
+export POSTGRES_PASSWORD:=secret
+export POSTGRES_DB:=db
+
 
 help: ## help on rule's targets
 	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -40,13 +44,17 @@ init: ## inits SWARM
 	docker swarm init
 
 .PHONY: deploy
-deploy: compose-dev.yml ## deploy/update stack in SWARM
+deploy: docker-compose.yml docker-compose-ops.yml ## deploy/update stacks in SWARM
 	docker stack deploy --with-registry-auth --compose-file $< ${STACK_NAME}
+	docker stack deploy --with-registry-auth --compose-file $(word 2, $^) ${STACK_NAME}-ops
 	@echo ''make remove'' to stop swarm
 
+
 .PHON: remove
-remove: ## remove stack from SWARM
+remove: ## remove stacks from SWARM
+	docker stack rm ${STACK_NAME}-ops
 	docker stack rm ${STACK_NAME}
+
 
 .PHONY: leave
 leave: ## leaves SWARM
