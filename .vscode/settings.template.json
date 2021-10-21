@@ -3,7 +3,6 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
-  "eslint.alwaysShowStatus": true,
   "files.associations": {
     ".*rc": "ini",
     ".env*": "ini",
@@ -25,28 +24,6 @@
     "**/.git/subtree-cache/**": true,
     "**/node_modules/*/**": true
   },
-  "python.formatting.autopep8Args": [
-    "--max-line-length 140"
-  ],
-  "python.analysis.extraPaths": [
-    "./packages/models-library/src",
-    "./packages/postgres-database/src",
-    "./packages/postgres-database/tests",
-    "./packages/pytest-simcore/src",
-    "./packages/service-integration/src",
-    "./packages/service-library/src",
-    "./packages/simcore-sdk/src",
-    "./services/api-server/src",
-    "./services/api-server/tests/unit",
-    "./services/catalog/src",
-    "./services/director-v2/src",
-    "./services/director/src",
-    "./services/sidecar/src",
-    "./services/storage/src",
-    "./services/web/server/src",
-    "./services/web/server/tests/unit/with_dbs",
-    "./services/web/server/tests/unit/with_dbs/slow"
-  ],
   "python.linting.pylintEnabled": true,
   "python.linting.enabled": true,
   "[python]": {
@@ -57,11 +34,6 @@
     "editor.insertSpaces": false
   },
   "python.testing.pytestEnabled": true,
-  "autoDocstring.docstringFormat": "sphinx",
-  "hadolint.hadolintPath": "${workspaceFolder}/scripts/hadolint.bash",
-  "shellcheck.executablePath": "${workspaceFolder}/scripts/shellcheck.bash",
-  "shellcheck.run": "onSave",
-  "shellcheck.enableQuickFix": true,
   "python.formatting.provider": "black",
   "python.sortImports.path": "${workspaceFolder}/.venv/bin/isort",
   "python.sortImports.args": [
