@@ -5,3 +5,4 @@ mypy
 isort
 black
 pre-commit
+jinja-cli

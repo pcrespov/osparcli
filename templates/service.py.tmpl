@@ -1,0 +1,85 @@
+import sys
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
+from libs.application import run
+from libs.envelope import Envelope
+from libs.pagination import Page, init_pagination
+from pydantic import BaseModel
+
+APP_NAME = Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().stem
+
+{{ resource_name.capitalize() }}ID = int
+
+
+class {{ resource_name.capitalize() }}InNew(BaseModel):
+    name: str
+
+
+class {{ resource_name.capitalize() }}(BaseModel):
+    name: str
+
+
+class {{ resource_name.capitalize() }}AsDetail(BaseModel):
+    address: str
+
+
+class {{ resource_name.capitalize() }}InUpdate(BaseModel):
+    pass
+
+
+def get_valid_{{ resource_name.lower() }}({{ resource_name.lower() }}_id: {{ resource_name.capitalize() }}Id) -> {{ resource_name.capitalize() }}Id:
+    if not {{ resource_name.lower() }}_id:  # TODO: check
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project does not exists"
+        )
+
+    return {{ resource_name.lower() }}_id
+
+
+#------------------------------------------------------------------------------------------
+
+router = APIRouter(prefix="/{{ resource_name.lower() }}s", tags=["{{ resource_name.lower() }}s"])
+
+
+@router.get("", response_model=Page[{{ resource_name.capitalize() }}])
+def list_{{ resource_name.lower() }}s(page=Depends(init_pagination({{ resource_name.capitalize() }}))):
+    ...
+
+
+@router.post(
+    "", response_model=Envelope[{{ resource_name.capitalize() }}AsDetail], status_code=status.HTTP_201_CREATED
+)
+def create_{{ resource_name.lower() }}({{ resource_name.lower() }}: {{ resource_name.capitalize() }}InNew):
+    ...
+
+
+@router.get("/{ {{- resource_name.lower() }}_id}", response_model=Envelope[{{ resource_name.capitalize() }}AsDetail])
+def get_{{ resource_name.lower() }}({{ resource_name.lower() }}_id: {{ resource_name.capitalize() }}Id = Depends(get_valid_{{ resource_name.lower() }})):
+    ...
+
+
+@router.put("/{ {{- resource_name.lower() }}_id}", response_model=Envelope[{{ resource_name.capitalize() }}AsDetail])
+def replace_{{ resource_name.lower() }}({{ resource_name.lower() }}: {{ resource_name.capitalize() }}InNew, {{ resource_name.lower() }}_id: {{ resource_name.capitalize() }}Id = Depends(get_valid_{{ resource_name.lower() }})):
+    ...
+
+
+@router.patch("/{ {{- resource_name.lower() }}_id}", response_model=Envelope[{{ resource_name.capitalize() }}AsDetail])
+def update_{{ resource_name.lower() }}({{ resource_name.lower() }}: {{ resource_name.capitalize() }}InUpdate, {{ resource_name.lower() }}_id: {{ resource_name.capitalize() }}Id = Depends(get_valid_{{ resource_name.lower() }})):
+    ...
+
+
+@router.delete(
+    "/{ {{- resource_name.lower() }}_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_{{ resource_name.lower() }}({{ resource_name.lower() }}_id: {{ resource_name.capitalize() }}Id = Depends(get_valid_{{ resource_name.lower() }})):
+    ...
+
+
+the_app = FastAPI(title=APP_NAME)
+the_app.include_router(router)
+
+
+if __name__ == "__main__":
+    run(APP_NAME)

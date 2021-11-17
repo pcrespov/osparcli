@@ -75,10 +75,14 @@ leave: ## leaves SWARM
 
 
 .PHONY: dev-env
-env-dev: ## env-devel
+env-dev: .venv ## env-devel
 	pip install -r requirements-dev.txt
 	pre-commit install
 
+
+.PHONY: new-service
+new-service: # create from template with $(resource_name)
+	jinja -D resource_name $(resource_name) templates/service.py.tmpl > services/$(resource_name)s.py
 
 
 .PHONY: info
