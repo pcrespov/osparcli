@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
-
 # compose config
 compose-dev.yml
 .vscode/settings.json
+
+# pattern
+*ignore*
