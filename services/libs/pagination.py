@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Any, Generic, Optional, Type, TypeVar
 
 from fastapi import Query, Request
 from pydantic import (
@@ -79,17 +79,17 @@ ItemT = TypeVar("ItemT")
 class Page(GenericModel, Generic[ItemT]):
     meta: PageMetaInfoLimitOffset = Field(alias="_meta")
     links: PageLinks = Field(alias="_links")
-    data: List[ItemT]
+    data: list[ItemT]
 
     @classmethod
     def create_obj(
         cls,
-        data: List[Any],
+        data: list[Any],
         request_url: URL,
         total: int,
         limit: int,
         offset: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         last_page = ceil(total / limit) - 1
         return dict(
             _meta=PageMetaInfoLimitOffset(

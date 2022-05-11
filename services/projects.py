@@ -1,8 +1,7 @@
 import sys
 from datetime import datetime
-from math import ceil
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Union
 from uuid import UUID, uuid3
 
 from fastapi import Depends, FastAPI
@@ -44,9 +43,9 @@ class Node(BaseModel):
     version: str = Field(..., regex=r"\d+\.\d+\.\d+")
     label: str
 
-    inputs: Dict[InputID, DataSchema]
+    inputs: dict[InputID, DataSchema]
     # var inputs?
-    outputs: Dict[OutputID, DataSchema]
+    outputs: dict[OutputID, DataSchema]
     # var outputs?
 
 
@@ -55,12 +54,12 @@ class Project(BaseModel):
     """Domain model"""
 
     id: UUID
-    pipeline: Dict[UUID, Node]
+    pipeline: dict[UUID, Node]
 
 
 # requests models
 class ProjectNew(BaseModel):
-    pipeline: Dict[UUID, Node]
+    pipeline: dict[UUID, Node]
 
 
 class ProjectUpdate(BaseModel):
@@ -79,12 +78,12 @@ class ProjectItem(BaseModel):
 
 class ProjectDetail(BaseModel):
     id: UUID
-    pipeline: Dict[UUID, Node]
+    pipeline: dict[UUID, Node]
 
     url: HttpUrl
 
     def update_ids(self, name: str):
-        map_ids: Dict[UUID, UUID] = {}
+        map_ids: dict[UUID, UUID] = {}
         map_ids[self.id] = uuid3(self.id, name)
         map_ids.update({node_id: uuid3(node_id, name) for node_id in self.pipeline})
 
@@ -94,8 +93,8 @@ class ProjectDetail(BaseModel):
 class WorkbenchView(BaseModel):
     """A view (i.e. read-only and visual) of the project's workbench"""
 
-    workbench: Dict[UUID, Node] = {}
-    ui: Dict[UUID, Any] = {}
+    workbench: dict[UUID, Node] = {}
+    ui: dict[UUID, Any] = {}
 
 
 # --------------
@@ -119,7 +118,7 @@ class ParameterDetail(Parameter):
 
 # project resource --------
 
-_PROJECTS: Dict[UUID, Project] = {}
+_PROJECTS: dict[UUID, Project] = {}
 
 
 def get_valid_project(
@@ -342,7 +341,7 @@ class Commit(CommitRef):
     # author: Author
     created_at: datetime
     message: str
-    parents: List[CommitRef]
+    parents: list[CommitRef]
 
 
 class CommitMessage(BaseModel):
