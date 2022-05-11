@@ -76,8 +76,8 @@ leave: ## leaves SWARM
 
 .PHONY: dev-env
 env-dev: .venv ## env-devel
-	pip install -r requirements-dev.txt
-	pre-commit install
+	.venv/bin/python -m pip install -r requirements-dev.txt
+	.venv/bin/pre-commit install
 
 
 .PHONY: new-service
