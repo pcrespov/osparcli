@@ -134,3 +134,4 @@ compose-dev.yml
 
 # pattern
 *ignore*
+.python-version
