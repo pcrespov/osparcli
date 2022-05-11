@@ -50,7 +50,12 @@ services:
     - python
     - /src/web.py
     user: ${UID}:${GID}
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      start_period: 1s
+      interval: 5s
+      timeout: 10s
+      retries: 3
   postgres:
     image: "postgres:10.11@sha256:2aef165ab4f30fbb109e88959271d8b57489790ea13a77d27c02d8adb8feb20f"
     init: true
