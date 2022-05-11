@@ -26,7 +26,7 @@ compose-dev.yml:
 
 .PHONY: build
 build: ## build IMAGES
-	@docker build --file Dockerfile --tag   .
+	@docker build --file Dockerfile --tag local/mini-osparc  .
 
 .PHONY: up
 up: compose-dev.yml ## starts CONTAINERS
@@ -97,3 +97,10 @@ info: ## environment info
 .PHONY: clean
 clean: ## clean except if 'keep' in name
 	git clean -dxf --exclude=*keep*
+
+
+.PHONY: benchmark
+benchmark:
+	docker build --file scripts/wrk.Dockerfile --tag local/wrk:latest $(CURDIR)
+	docker run --rm -v $(pwd):/data local/wrk:latest \
+		-t12 -c400 -d30s http://127.0.0.1:8080/
