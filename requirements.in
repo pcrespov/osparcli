@@ -1,0 +1,4 @@
+aio-pika # RabbitMQ client
+fastapi
+uvicorn
+zeroapi
