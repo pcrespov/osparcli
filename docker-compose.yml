@@ -106,6 +106,21 @@ services:
         "-c",
         "shared_buffers=256MB",
       ]
-
+  rabbit:
+    image: itisfoundation/rabbitmq:3.11.2-management
+    init: true
+    hostname: "{{.Node.Hostname}}-{{.Service.Name}}-{{.Task.Slot}}"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASSWORD}
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      # see https://www.rabbitmq.com/monitoring.html#individual-checks for info about health-checks available in rabbitmq
+      test: rabbitmq-diagnostics -q status
+      interval: 5s
+      timeout: 30s
+      retries: 5
+      start_period: 5s
 volumes:
   postgres_data: {}

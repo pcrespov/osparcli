@@ -1,8 +1,9 @@
 -r requirements.txt
 
-pylint
-mypy
-isort
 black
-pre-commit
+isort
 jinja-cli
+mypy
+pip-tools
+pre-commit
+pylint
