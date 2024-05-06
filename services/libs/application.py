@@ -1,10 +1,10 @@
 import sys
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 from fastapi.routing import APIRoute
 from starlette.requests import Request
 
