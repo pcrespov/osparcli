@@ -88,9 +88,6 @@ env-dev: .venv ## env-devel
 	.venv/bin/python -m pip install -r requirements-dev.txt
 	.venv/bin/pre-commit install
 
-requirements.txt: requirements.in ## compiles requirements.in
-	.venv/bin/pip-compile requirements.in
-
 
 .PHONY: new-service
 new-service: # create from template with $(resource_name)
