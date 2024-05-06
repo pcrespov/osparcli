@@ -135,3 +135,6 @@ compose-dev.yml
 # pattern
 *ignore*
 .python-version
+
+
+docker-compose.1.yml

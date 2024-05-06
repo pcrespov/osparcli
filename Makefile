@@ -24,8 +24,13 @@ help: ## help on rule's targets
 
 
 # docker-compose
-docker-compose.yml:
+.PHONY: docker-compose.1.yml
+docker-compose.1.yml:
 	@python scripts/create-compose-file.py > $@
+
+docker-compose.yml: docker-compose.1.yml
+	docker compose -f docker-compose.1.yml -f docker-compose.2.yml config > docker-compose.yml
+
 
 .PHONY: compose-dev.yml
 compose-dev.yml:
