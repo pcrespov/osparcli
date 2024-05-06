@@ -16,7 +16,7 @@ def run(app_name: str):
     uvicorn.run(
         f"{app_name}:the_app",
         host="0.0.0.0",
-        reload=True,
+        reload=False,
         reload_dirs=[str(SERVICES_DIR)],
         log_level="debug",
     )

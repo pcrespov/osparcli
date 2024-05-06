@@ -24,7 +24,6 @@ help: ## help on rule's targets
 
 
 # docker-compose
-.PHONY: docker-compose.1.yml
 docker-compose.1.yml:
 	@python scripts/create-compose-file.py > $@
 
