@@ -124,3 +124,4 @@ services:
       start_period: 5s
 volumes:
   postgres_data: {}
+  rabbit_data: {}
