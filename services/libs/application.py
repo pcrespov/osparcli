@@ -1,10 +1,10 @@
 import sys
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 from fastapi.routing import APIRoute
 from starlette.requests import Request
 
@@ -16,7 +16,7 @@ def run(app_name: str):
     uvicorn.run(
         f"{app_name}:the_app",
         host="0.0.0.0",
-        reload=True,
+        reload=False,
         reload_dirs=[str(SERVICES_DIR)],
         log_level="debug",
     )

@@ -1,111 +1,101 @@
-version: '3.9'
 services:
-  catalog:
-    image: local/mini-osparc
-    ports:
-    - 8000:8000
-    volumes:
-    - ./services:/src
-    command:
-    - python
-    - /src/catalog.py
-    user: ${UID}:${GID}
-  projects:
-    image: local/mini-osparc
-    ports:
-    - 8001:8000
-    volumes:
-    - ./services:/src
-    command:
-    - python
-    - /src/projects.py
-    user: ${UID}:${GID}
-  storage:
-    image: local/mini-osparc
-    ports:
-    - 8002:8000
-    volumes:
-    - ./services:/src
-    command:
-    - python
-    - /src/storage.py
-    user: ${UID}:${GID}
-  users:
-    image: local/mini-osparc
-    ports:
-    - 8003:8000
-    volumes:
-    - ./services:/src
-    command:
-    - python
-    - /src/users.py
-    user: ${UID}:${GID}
-  web:
-    image: local/mini-osparc
-    ports:
-    - 8004:8000
-    volumes:
-    - ./services:/src
-    command:
-    - python
-    - /src/web.py
-    user: ${UID}:${GID}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
-      start_period: 1s
-      interval: 5s
-      timeout: 10s
-      retries: 3
   postgres:
-    image: "postgres:10.11@sha256:2aef165ab4f30fbb109e88959271d8b57489790ea13a77d27c02d8adb8feb20f"
-    init: true
-    hostname: "{{.Node.Hostname}}-{{.Service.Name}}-{{.Task.Slot}}"
+    command:
+      - postgres
+      - -c
+      - tcp_keepalives_idle=600
+      - -c
+      - tcp_keepalives_interval=600
+      - -c
+      - tcp_keepalives_count=5
+      - -c
+      - max_connections=413
+      - -c
+      - shared_buffers=256MB
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=db
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: adminadmin
+      POSTGRES_USER: scu
+    hostname: '{{.Node.Hostname}}-{{.Service.Name}}-{{.Task.Slot}}'
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - --username
+        - scu
+        - --dbname
+        - db
+      interval: 15s
+      retries: 5
+    image: postgres:10.11@sha256:2aef165ab4f30fbb109e88959271d8b57489790ea13a77d27c02d8adb8feb20f
+    init: true
+    networks:
+      default: null
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
       - type: tmpfs
         target: /dev/shm
         tmpfs:
           size: 16000000000
+  rabbit:
+    environment:
+      RABBITMQ_DEFAULT_PASS: adminadmin
+      RABBITMQ_DEFAULT_USER: admin
+    hostname: '{{.Node.Hostname}}-{{.Service.Name}}-{{.Task.Slot}}'
     healthcheck:
       test:
-        [
-          "CMD",
-          "pg_isready",
-          "--username",
-          "scu",
-          "--dbname",
-          "db",
-        ]
-      interval: 15s
+        - CMD-SHELL
+        - rabbitmq-diagnostics -q status
+      timeout: 30s
+      interval: 5s
       retries: 5
-    # NOTES: this is not yet compatible with portainer deployment but could work also for other containers
-    # works with Docker 19.03 and not yet with Portainer 1.23.0 (see https://github.com/portainer/portainer/issues/3551)
-    # in the meantime postgres allows to set a configuration through CLI.
-    # sysctls:
-    #   # NOTES: these values are needed here because docker swarm kills long running idle
-    #   # connections by default after 15 minutes see https://github.com/moby/moby/issues/31208
-    #   # info about these values are here https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/usingkeepalive.html
-    #   - net.ipv4.tcp_keepalive_intvl=600
-    #   - net.ipv4.tcp_keepalive_probes=9
-    #   - net.ipv4.tcp_keepalive_time=600
+      start_period: 5s
+    image: itisfoundation/rabbitmq:3.11.2-management
+    init: true
+    networks:
+      default: null
+    volumes:
+      - type: volume
+        source: rabbit_data
+        target: /var/lib/rabbitmq
+        volume: {}
+  web:
     command:
-      [
-        "postgres",
-        "-c",
-        "tcp_keepalives_idle=600",
-        "-c",
-        "tcp_keepalives_interval=600",
-        "-c",
-        "tcp_keepalives_count=5",
-        "-c",
-        "max_connections=413",
-        "-c",
-        "shared_buffers=256MB",
-      ]
-
+      - python
+      - /src/web.py
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:8000/health
+      timeout: 10s
+      interval: 5s
+      retries: 3
+      start_period: 1s
+    image: local/mini-osparc
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: 8000
+        protocol: tcp
+    user: 1000:1000
+    volumes:
+      - type: bind
+        source: /home/crespo/repos/osparcli/services
+        target: /src
+        bind:
+          create_host_path: true
+networks:
+  default:
+    name: osparcli_default
 volumes:
-  postgres_data: {}
+  postgres_data:
+    name: osparcli_postgres_data
+  rabbit_data:
+    name: osparcli_rabbit_data

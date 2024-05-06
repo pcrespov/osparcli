@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, validator
 from pydantic.generics import GenericModel
@@ -6,14 +6,14 @@ from pydantic.generics import GenericModel
 DataT = TypeVar("DataT")
 
 
-class Error(BaseModel):
+class ErrorModel(BaseModel):
     code: int
     message: str
 
 
 class Envelope(GenericModel, Generic[DataT]):
-    data: Optional[DataT]
-    error: Optional[Error]
+    data: DataT | None
+    error: ErrorModel | None
 
     @validator("error", always=True)
     @classmethod

@@ -4,19 +4,32 @@ export BASE_IMAGE:=local/mini-osparc
 export UID:=$(shell id -u)
 export GID:=$(shell id -g)
 
-export POSTGRES_USER:=$(shell id -un)
-export POSTGRES_PASSWORD:=secret
-export POSTGRES_DB:=db
+# this is a dummy stack so it is ok
+# to show credentials here
+export POSTGRES_DB=simcoredb
+export POSTGRES_HOST=postgres
+export POSTGRES_PASSWORD=adminadmin
+export POSTGRES_PORT=5432
+export POSTGRES_USER=scu
+
+export RABBIT_HOST=rabbit
+export RABBIT_PASSWORD=adminadmin
+export RABBIT_PORT=5672
+export RABBIT_USER=admin
+export RABBIT_SECURE=false
 
 
 help: ## help on rule's targets
 	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 
-
 # docker-compose
-docker-compose.yml:
+docker-compose.1.yml:
 	@python scripts/create-compose-file.py > $@
+
+docker-compose.yml: docker-compose.1.yml
+	docker compose -f docker-compose.1.yml -f docker-compose.2.yml config > docker-compose.yml
+
 
 .PHONY: compose-dev.yml
 compose-dev.yml:
@@ -74,9 +87,9 @@ leave: ## leaves SWARM
 	@echo "To activate the venv, execute 'source .venv/bin/activate'"
 
 
-.PHONY: dev-env
-env-dev: .venv ## env-devel
-	.venv/bin/python -m pip install -r requirements-dev.txt
+.PHONY: devenv
+devenv: .venv ## installs for development
+	.venv/bin/pip install -r requirements-dev.txt
 	.venv/bin/pre-commit install
 
 
@@ -91,7 +104,7 @@ info: ## environment info
 	@pip --version
 	@pip list
 	@echo ---
-	@printenv
+	@printenv | sort
 
 
 .PHONY: clean

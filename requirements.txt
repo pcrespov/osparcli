@@ -1,3 +1,5 @@
+aio-pika # RabbitMQ client
 fastapi
 uvicorn
 zeroapi
+pydantic<2
