@@ -88,9 +88,9 @@ leave: ## leaves SWARM
 	@echo "To activate the venv, execute 'source .venv/bin/activate'"
 
 
-.PHONY: dev-env
-env-dev: .venv ## env-devel
-	.venv/bin/python -m pip install -r requirements-dev.txt
+.PHONY: devenv
+devenv: .venv ## installs for development
+	.venv/bin/pip install -r requirements-dev.txt
 	.venv/bin/pre-commit install
 
 
@@ -105,7 +105,7 @@ info: ## environment info
 	@pip --version
 	@pip list
 	@echo ---
-	@printenv
+	@printenv | sort
 
 
 .PHONY: clean
